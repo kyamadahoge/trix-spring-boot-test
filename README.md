@@ -1,0 +1,1 @@
+# trix-spring-boot-test
