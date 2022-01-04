@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/trix/1.3.1/trix.min.css" integrity="sha512-5m1IeUDKtuFGvfgz32VVD0Jd/ySGX7xdLxhqemTmThxHdgqlgPdupWoSN8ThtUSLpAGBvA8DY2oO7jJCrGdxoA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/trix/1.3.1/trix.min.js" integrity="sha512-2RLMQRNr+D47nbLnsbEqtEmgKy67OSCpWJjJM394czt99xj3jJJJBQ43K7lJpfYAYtvekeyzqfZTx2mqoDh7vg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<body>
+  <form data-th-action="@{/save}" method="post" data-th-object="${form}">
+    <!-- Trixエディタで入力した内容のHTMLがこのinput要素に入ります -->
+    <input type="hidden" data-th-field="*{content}">
+    <!-- trix-editor要素のinput属性の値と、html出力先のid属性の値を合わせます -->
+    <trix-editor input="content" class="trix-content"></trix-editor>
+    <button>保存</button>
+  </form>
+</body>
+
+<script data-th-inline="javascript">
+(function() {
+  const url = "[(@{/image/put})]";
+
+  addEventListener('trix-attachment-add', event => {
+    if (event.attachment.file) {
+      uploadFileAttachment(event.attachment);
+    }
+  });
+
+  const uploadFileAttachment = attachment => {
+    const setProgress =
+      progress => attachment.setUploadProgress(progress);
+    const setAttributes =
+      attributes => attachment.setAttributes(attributes);
+    uploadFile(attachment.file, setProgress, setAttributes);
+  };
+
+  const uploadFile = (file, progressCallback, successCallback) => {
+    const formData = createFormData(file);
+    const xhr = new XMLHttpRequest();
+
+    xhr.open('POST', url, true);
+
+    xhr.upload.addEventListener('progress', event => {
+      const progress = event.loaded / event.total * 100;
+      progressCallback(progress);
+    });
+
+    xhr.addEventListener('load', event => {
+      if (xhr.status === 201) {
+        const data = JSON.parse(xhr.responseText);
+        const attributes = {
+          url: data.url
+        };
+        successCallback(attributes);
+      }
+    });
+
+    xhr.send(formData);
+  };
+
+  const createFormData = file => {
+    const data = new FormData();
+    data.append('contentType', file.type);
+    data.append('file', file);
+    return data;
+  };
+
+})();
+</script>
+
+</html>
